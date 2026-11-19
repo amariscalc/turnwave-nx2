@@ -1,29 +1,27 @@
 # Turnwave NX2
 
-Turnwave NX2 is an independent homebrew launcher for Nintendo Switch 2. It opens the official Apple Music website in the system web applet. Sign-in, browsing and playback are provided by Apple Music. The launcher requires internet access and works without a separate server or developer credentials.
+Turnwave NX2 is a homebrew application for Nintendo Switch 2 that opens the official Apple Music web player. It has a controller-friendly home screen and connects directly to Apple Music through the system web applet. Setup requires no extra server or Apple Developer credentials.
 
-![Launcher preview rendered from the launch screen text](docs/launcher-preview.png)
+![Turnwave NX2 home screen with the Open Apple Music button](docs/home-screen.webp)
 
-The image is a desktop reconstruction of the launcher screen. Web applet availability, controller navigation inside the website, sign-in and playback still need verification on Switch 2 hardware. Full-track playback requires an active Apple Music subscription and a compatible browser.
-
-## Install
+## Install and use
 
 1. Copy `TurnwaveNX2.nro` to `switch/TurnwaveNX2/TurnwaveNX2.nro` on the SD card.
-2. Launch **Turnwave NX2** from Homebrew Menu.
-3. Press **A** to open [Apple Music](https://music.apple.com/es/) or **+** to return to Homebrew Menu.
+2. Open **Turnwave NX2** from Homebrew Menu.
+3. Press **A** to open [Apple Music](https://music.apple.com/es/). Press **+** or **B** on the app’s home screen to exit.
 
-The launcher opens the Spanish storefront. If the system web applet returns an error, the launcher displays its hexadecimal result code.
+The app opens the Spanish storefront. Apple Music handles sign-in, search, library access and playback in its web player. Full-track playback requires an active Apple Music subscription and a compatible browser. The screen above is rendered from the same assets as the NRO. The applet and playback have yet to be verified on physical hardware.
 
-## Build
+## Build from source
 
-Install [devkitPro](https://devkitpro.org/) with the Switch toolchain and [ounce-devkit](https://github.com/ouncebrew/ounce-devkit) with libounce. Set `DEVKITPRO` and `DEVKITA64` for your installation and add the development tools to your PATH.
+Install [devkitPro](https://devkitpro.org/) with the Switch toolchain and [ounce-devkit](https://github.com/ouncebrew/ounce-devkit) with libounce. Set `DEVKITPRO` and `DEVKITA64` and add the SDK tools to your PATH. The interface renderer also needs Python 3 with NumPy, Pillow and the Open Sans font family. Set `TURNWAVE_FONTS` to the directory containing the Open Sans TTF files if they are installed outside the default Linux path.
 
 ```sh
 make
 ```
 
-The output is `TurnwaveNX2.nro`. Built with libounce 20261117.1.
+The output file is `TurnwaveNX2.nro`. Version 1.3.0 was built with libounce 20261117.1.
 
 ## Trademarks
 
-Apple Music is a service mark of Apple Inc. Nintendo Switch is a trademark of Nintendo. Turnwave NX2 is an independent project and has no affiliation with Apple or Nintendo.
+Apple Music is a service mark of Apple Inc. Nintendo Switch is a trademark of Nintendo. Turnwave NX2 is an independent project with no affiliation with Apple or Nintendo.

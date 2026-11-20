@@ -64,12 +64,17 @@ static bool present(Framebuffer *fb, const u8 *status, Result result) {
     return true;
 }
 
-static Result open_apple_music(void) {
-    static const char url[] = "https://music.apple.com/es/";
-    static const char allowed[] =
+static Result open_web(bool browser_check) {
+    const char *url = browser_check ? "https://example.com/" : "https://music.apple.com/es/";
+    static const char music_allowed[] =
         "^https://([A-Za-z0-9-]+[.])*apple[.]com(/|$)\n"
         "^https://([A-Za-z0-9-]+[.])*apple-cloudkit[.]com(/|$)\n"
         "^https://([A-Za-z0-9-]+[.])*mzstatic[.]com(/|$)\n";
+    const char *allowed = browser_check ? "^https://example[.]com(/|$)\n" : music_allowed;
+    if (diagnostics) {
+        fprintf(diagnostics, "target: %s\n", browser_check ? "browser-check example.com" : "Apple Music");
+        fflush(diagnostics);
+    }
     WebCommonConfig config;
     // News mode includes the initial domain in the allowed navigation set.
     Result result = webNewsCreate(&config, url);
@@ -98,10 +103,23 @@ static Result open_apple_music(void) {
     }
     if (R_SUCCEEDED(result)) {
         WebCommonReply reply = {0};
+        if (diagnostics) {
+            WebArgHeader header;
+            memcpy(&header, config.arg.data, sizeof(header));
+            fprintf(diagnostics, "input: applet=0x%08X api=0x%08X shim=%u entries=%u\n",
+                    (unsigned)config.appletid, (unsigned)config.version,
+                    (unsigned)header.shimKind, (unsigned)header.total_entries);
+            fflush(diagnostics);
+        }
         record_result("opening OpenWeb 0x01000013", 0);
         result = webConfigShow(&config, &reply);
         record_result("webConfigShow", result);
         if (R_SUCCEEDED(result)) {
+            if (diagnostics) {
+                fprintf(diagnostics, "reply: tlv=%u shim=%u\n",
+                        (unsigned)reply.type, (unsigned)reply.shimKind);
+                fflush(diagnostics);
+            }
             WebExitReason reason;
             result = webReplyGetExitReason(&reply, &reason);
             record_result("webReplyGetExitReason", result);
@@ -145,7 +163,7 @@ int main(void) {
     mkdir("sdmc:/switch/TurnwaveNX2", 0777);
     diagnostics = fopen("sdmc:/switch/TurnwaveNX2/diagnostics.log", "w");
     if (diagnostics) {
-        fprintf(diagnostics, "Turnwave NX2 1.3.2 / News navigation / OpenWeb 0x01000013 / HOS 0x%08X / role %u\n",
+        fprintf(diagnostics, "Turnwave NX2 1.3.3 / News navigation / OpenWeb 0x01000013 / HOS 0x%08X / role %u\n",
                 (unsigned)hosversionGet(), (unsigned)appletGetAppletType());
         fflush(diagnostics);
     }
@@ -174,10 +192,10 @@ int main(void) {
         padUpdate(&pad);
         u64 down = padGetButtonsDown(&pad);
         if (down & (HidNpadButton_Plus | HidNpadButton_B)) break;
-        if (down & HidNpadButton_A) {
+        if (down & (HidNpadButton_A | HidNpadButton_X)) {
             visible = present(&fb, ui_opening, 0);
             if (!visible) break;
-            rc = open_apple_music();
+            rc = open_web((down & HidNpadButton_A) == 0);
             if (!appletMainLoop()) break;
             visible = present(&fb, R_FAILED(rc) ? ui_failed : NULL, rc);
         }

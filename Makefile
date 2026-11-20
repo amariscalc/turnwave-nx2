@@ -5,7 +5,7 @@ endif
 include $(DEVKITPRO)/libounce/switch2_rules
 
 TARGET := TurnwaveNX2
-VERSION := 1.3.1
+VERSION := 1.3.2
 ARCH := $(SWITCH2_CPU) -mtp=soft -fPIE
 CPPFLAGS += -I$(LIBNX)/include
 CFLAGS := $(ARCH) -O2 -Wall -Wextra -ffunction-sections

@@ -71,13 +71,22 @@ static Result open_apple_music(void) {
         "^https://([A-Za-z0-9-]+[.])*apple-cloudkit[.]com(/|$)\n"
         "^https://([A-Za-z0-9-]+[.])*mzstatic[.]com(/|$)\n";
     WebCommonConfig config;
-    Result result = webPageCreate(&config, url);
-    record_result("webPageCreate", result);
+    // News mode includes the initial domain in the allowed navigation set.
+    Result result = webNewsCreate(&config, url);
+    record_result("webNewsCreate", result);
     if (R_SUCCEEDED(result)) {
         // Switch 2 uses the OpenWeb AppletId, distinct from Switch 1's 0x13.
         config.appletid = (AppletId)SWITCH2_OPENWEB_APPLET_ID;
         result = webConfigSetWhitelist(&config, allowed);
         record_result("webConfigSetWhitelist", result);
+    }
+    if (R_SUCCEEDED(result)) {
+        result = webConfigSetEcClientCert(&config, false);
+        record_result("webConfigSetEcClientCert(false)", result);
+    }
+    if (R_SUCCEEDED(result)) {
+        result = webConfigSetShopJump(&config, false);
+        record_result("webConfigSetShopJump(false)", result);
     }
     if (R_SUCCEEDED(result)) {
         result = webConfigSetTouchEnabledOnContents(&config, true);
@@ -101,7 +110,9 @@ static Result open_apple_music(void) {
                     fprintf(diagnostics, "web exit reason: %u\n", (unsigned)reason);
                     fflush(diagnostics);
                 }
-                if (reason == WebExitReason_ErrorDialog) {
+                // Only documented user/callback exits count as a normal close.
+                if (reason != WebExitReason_ExitButton && reason != WebExitReason_BackButton &&
+                    reason != WebExitReason_Requested && reason != WebExitReason_LastUrl) {
                     result = MAKERESULT(Module_Libnx, LibnxError_LibAppletBadExit);
                 }
             }
@@ -134,7 +145,7 @@ int main(void) {
     mkdir("sdmc:/switch/TurnwaveNX2", 0777);
     diagnostics = fopen("sdmc:/switch/TurnwaveNX2/diagnostics.log", "w");
     if (diagnostics) {
-        fprintf(diagnostics, "Turnwave NX2 1.3.1 / OpenWeb 0x01000013 / HOS 0x%08X / role %u\n",
+        fprintf(diagnostics, "Turnwave NX2 1.3.2 / News navigation / OpenWeb 0x01000013 / HOS 0x%08X / role %u\n",
                 (unsigned)hosversionGet(), (unsigned)appletGetAppletType());
         fflush(diagnostics);
     }

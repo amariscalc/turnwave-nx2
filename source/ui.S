@@ -11,4 +11,8 @@ ui_opening:
 .global ui_failed
 ui_failed:
 .incbin "build/ui/failed.rgba"
+.balign 16
+.global ui_hex
+ui_hex:
+.incbin "build/ui/hex.alpha"
 .section .note.GNU-stack,"",%progbits

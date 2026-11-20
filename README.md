@@ -10,7 +10,9 @@ Turnwave NX2 is a homebrew application for Nintendo Switch 2 that opens the offi
 2. Open **Turnwave NX2** from Homebrew Menu.
 3. Press **A** to open [Apple Music](https://music.apple.com/es/). Press **+** or **B** on the app’s home screen to exit.
 
-The app opens the Spanish storefront. Apple Music handles sign-in, search, library access and playback in its web player. Full-track playback requires an active Apple Music subscription and a compatible browser. The screen above is rendered from the same assets as the NRO. The applet and playback have yet to be verified on physical hardware.
+The app opens the Spanish storefront. Apple Music handles sign-in, search, library access and playback in its web player. Full-track playback requires an active Apple Music subscription and a compatible browser. The screen above is rendered from the same assets as the NRO. The home screen has been verified on physical hardware. Version 1.3.1 corrects the OpenWeb applet identifier used to open Apple Music. Web sign-in and playback still require validation on Switch 2.
+
+If opening the web player fails, the home screen displays a hexadecimal result code. Details are written to `switch/TurnwaveNX2/diagnostics.log` on the SD card. The log contains SDK call results and the applet exit reason. It is replaced on each app launch.
 
 ## Build from source
 
@@ -20,7 +22,7 @@ Install [devkitPro](https://devkitpro.org/) with the Switch toolchain and [ounce
 make
 ```
 
-The output file is `TurnwaveNX2.nro`. Version 1.3.0 was built with libounce 20261117.1.
+The output file is `TurnwaveNX2.nro`. Version 1.3.1 was built with libounce 20261117.1.
 
 ## Trademarks
 

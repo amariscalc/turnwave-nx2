@@ -5,7 +5,7 @@ endif
 include $(DEVKITPRO)/libounce/switch2_rules
 
 TARGET := TurnwaveNX2
-VERSION := 1.3.0
+VERSION := 1.3.1
 ARCH := $(SWITCH2_CPU) -mtp=soft -fPIE
 CPPFLAGS += -I$(LIBNX)/include
 CFLAGS := $(ARCH) -O2 -Wall -Wextra -ffunction-sections
@@ -17,10 +17,10 @@ all: $(TARGET).nro
 $(TARGET).elf: source/main.c build/ui.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) $(LDFLAGS) -o $@ $^ -lnx
 
-build/ui/home.rgba build/ui/opening.rgba build/ui/failed.rgba &: design/render.py
+build/ui/home.rgba build/ui/opening.rgba build/ui/failed.rgba build/ui/hex.alpha &: design/render.py
 	python3 $< build/ui
 
-build/ui.o: source/ui.S build/ui/home.rgba build/ui/opening.rgba build/ui/failed.rgba
+build/ui.o: source/ui.S build/ui/home.rgba build/ui/opening.rgba build/ui/failed.rgba build/ui/hex.alpha
 	$(CC) $(ARCH) -c -o $@ $<
 
 $(TARGET).nacp: Makefile

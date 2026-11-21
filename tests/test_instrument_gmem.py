@@ -46,7 +46,7 @@ class GmemInstrumentationTests(unittest.TestCase):
             m.patch_source(changed)
 
     def test_refuses_unrecognized_source_and_partial_patch(self):
-        with self.assertRaisesRegex(ValueError,"SVC anchor"):
+        with self.assertRaisesRegex(ValueError,"SVC C block"):
             m.patch_source("int main(void) { return 0; }")
         with self.assertRaisesRegex(ValueError,"Partially instrumented"):
             m.patch_source("/* NX2_CDM_DIAG_V1 */")

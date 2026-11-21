@@ -45,30 +45,36 @@ def label(at,text,size=19,bold=False,color='#fff',anchor='lt'):
     font=ImageFont.truetype(str(FONTS / ('OpenSans-Bold.ttf' if bold else 'OpenSans-Regular.ttf')),size)
     ImageDraw.Draw(art).text(at,text,font=font,fill=color,anchor=anchor)
 
-glass((64,48,247,96),24,(29,34,60),'#5b5c82',37)
+# Fixed layout; dynamic copy is rendered exclusively in native/source/main.c.
+# Header: y42-108; cards: y126-618; footer: y632-706.
+glass((64,42,1216,108),27,(24,30,52),'#666f99',40)
 draw=ImageDraw.Draw(art)
-draw.ellipse((84,63,100,79),outline='#dbd7ff',width=2)
-draw.ellipse((89,68,95,74),fill='#b6a7ff')
-label((112,71),'Turnwave NX2',16,True,anchor='lm')
-glass((64,140,664,609),35,(19,22,41),'#68698f',34)
-glass((685,140,1217,609),35,(21,25,46),'#7776a0',38)
-label((100,178),'Your music',37,True)
-label((100,223),'Your library, on Nintendo Switch 2.',16,color='#c7d0ec')
-label((724,181),'YOUR LIBRARY',15,True,color='#c6bdec')
-label((724,217),'APPLE MUSIC · LIQUID',14,color='#d7c4fb')
+draw.ellipse((87,64,103,80),outline='#dbd7ff',width=2)
+draw.ellipse((92,69,98,75),fill='#b6a7ff')
+label((116,58),'Turnwave NX2',22,True)
+label((116,90),'Apple Music on Nintendo Switch 2',13,color='#c7d0ec')
+label((1080,74),'BUILD 0.6.0',14,True,color='#d9d2ff')
+
+glass((64,126,736,618),34,(19,22,41),'#68698f',34)
+glass((757,126,1216,618),34,(21,25,46),'#7776a0',38)
+label((102,162),'Your library',30,True)
+label((102,213),'Browse playlists, albums and songs',15,color='#c7d0ec')
+label((795,169),'APPLE MUSIC',16,True,color='#ded3ff')
+label((795,213),'LIBRARY AND PLAYBACK',14,color='#cbbdef')
+
 for i in range(7):
-    y0=265+i*44
-    glass((94,y0,633,y0+40),16,(29,33,55),'#464d6e',17)
+    y0=245+i*47
+    glass((94,y0,705,y0+42),17,(29,33,55),'#464d6e',17)
     draw=ImageDraw.Draw(art)
-    draw.ellipse((114,y0+11,132,y0+29),outline='#a6b1dd',width=2)
-    draw.ellipse((120,y0+17,126,y0+23),fill='#c3b5ee')
-# Reserved right-panel details end above the separator.
-# The button label and status are drawn dynamically by native/source/main.c.
-glass((730,468,1170,471),2,(113,94,174),'#6e5d98',18)
-glass((754,484,1148,543),25,(97,74,159),'#b2a6dd',42)
-# Global footer contains one controls hint and one separate dynamic status.
-glass((64,621,1217,708),24,(28,42,64),'#555d78',24)
-label((96,633),'L/R  Sections     Up/Down  Browse     X  Connect / Sync     Y  Reload     B/+  Exit',15,color='#d6def4')
+    draw.ellipse((117,y0+12,135,y0+30),outline='#a6b1dd',width=2)
+    draw.ellipse((123,y0+18,129,y0+24),fill='#c3b5ee')
+
+glass((790,351,1184,353),1,(113,94,174),'#6e5d98',16)
+glass((792,501,1181,568),26,(97,74,159),'#b2a6dd',43)
+
+# Controls and runtime status occupy separate lines with no duplication.
+glass((64,632,1216,706),22,(28,42,64),'#555d78',24)
+label((99,644),'L/R  SECTIONS       UP/DOWN  BROWSE       X  SYNC       Y  RELOAD       B/+  EXIT',14,color='#d6def4')
 (OUT/'home.rgba').write_bytes(art.tobytes())
 art.save(OUT/'home.png',optimize=True)
 # ASCII + Latin-1 font sheets; glyphs include each 32..255 code point,

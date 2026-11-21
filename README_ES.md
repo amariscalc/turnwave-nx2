@@ -222,6 +222,56 @@ Para desplegar esta instrumentacion hay que volver a ejecutar
 `chromium-bridge/install.py` y recompilar **Chromium NX2**; el NRO
 nativo de Turnwave no necesita cambios.
 
+## Diagnostico reversible del mapeador GX para Widevine (NX2_CDM_DIAG_V1)
+
+Si el log de Chromium muestra `no veneer left for the svc`,
+`mmap ... refused: -12` o `failed to map segment`, no aumentes
+`BRANCH_RANGE` ni cambies `--jitless` a ciegas. En el GX personalizado,
+`adopt_image()` ya identifica si un pool no cabe dentro del alcance
+de las instrucciones ARM64; `patch_syscalls()` no distingue una
+imagen sin pool de otra que agoto su capacidad. El parche **solo de
+diagnostico** etiqueta el motivo y registra reservas de entre
+4 y 32 MiB con su procedencia real (`loader`, `other`, `unknown`).
+
+```bash
+cd ~/switch2-dev/turnwave-nx2
+git pull --ff-only origin main
+./tests/syntax-check.sh
+python3 tools/instrument_gmem.py ~/switch2-dev/chromium-nx-diagnostico --check
+python3 tools/instrument_gmem.py ~/switch2-dev/chromium-nx-diagnostico
+python3 chromium-bridge/install.py ~/switch2-dev/chromium-nx-diagnostico
+cd ~/switch2-dev/chromium-nx-diagnostico
+docker exec -e SWITCH2=1 chromium-nx-diagnostico-build bash /project/gx/build-nx.sh
+```
+
+Guarda el NRO de GX recien compilado en
+`/switch/chromium-nx-diagnostico/chromium-nx2-diagnostico.nro`
+(con el mismo nombre y ruta que utiliza el Turnwave nativo).
+**No modificamos las imagenes EXT4 ni la biblioteca Widevine.**
+Se conserva `gx/gmem.c.before-turnwave-cdm-diag` para volver al
+archivo original de antes de esta instrumentacion.
+
+Despues de reproducir el error, busca en
+`/switch/chromium-nx-diagnostico/chromium-nx.log`:
+
+```text
+NX2_CDM_DIAG origin=loader ...
+NX2_CDM_DIAG origin=other ...
+NX2_CDM_DIAG origin=unknown ...
+NX2_CDM_DIAG veneer=no-image ...
+NX2_CDM_DIAG veneer=exhausted ...
+gx: diagnostic: ...
+gx: mmap of ... refused: -12
+```
+
+`no-image`: el codigo no obtuvo una imagen con un pool valido.
+`exhausted`: existia pool, pero no quedaba capacidad.
+`origin=other`: la reserva fue clasificada como procedente de otro
+codigo y se dirigio a la ventana de datos; **no implica por si mismo
+una clasificacion incorrecta**. La combinacion de lineas del mismo
+intento determinara si corresponde corregir la clasificacion o
+las reservas, sin cambiar las reglas arbitrariamente.
+
 ## Cómo interpretar `playback.log`
 
 Archivo: `sdmc:/switch/TurnwaveNX2/playback.log`.

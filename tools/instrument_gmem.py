@@ -7,6 +7,8 @@ Does not touch profiles, CDMs or SD cards.
 """
 from __future__ import annotations
 import argparse
+import re
+import textwrap
 from pathlib import Path
 import shutil
 import sys
@@ -64,23 +66,53 @@ UNKNOWN_NEW = '''                addr = find_free_aligned(size / GX_PAGE, ialign
                                  (unsigned long)mmap_site, (unsigned long)addr);
                 if (size >= (64UL << 20))'''
 
-def patch_source(src:str)->str:
+def _pattern_for(old: str) -> re.Pattern[str]:
+    """Match the exact C statements, tolerating tabs/spaces/CRLF indentation.
+
+    This deliberately does NOT match different statements or changed logic.
+    """
+    lines = old.splitlines()
+    def words(line: str) -> str:
+        # Internal formatting spaces can differ, but tokens must be identical.
+        return re.escape(line.strip()).replace(r"\ ", r"[ \t]+")
+    pattern = r"(?m)^(?P<indent>[ \t]*)" + words(lines[0])
+    for line in lines[1:]:
+        pattern += r"[ \t]*\r?\n[ \t]*" + words(line)
+    pattern += r"[ \t]*(?=\r?$)"
+    return re.compile(pattern)
+
+def patch_source(src: str) -> str:
     if MARKER in src:
-        # The explicit tag is in both SVC and LOADER blocks; verify all blocks.
         if all(needle in src for needle in (
             "veneer=no-image", "veneer=exhausted",
             "origin=loader", "origin=other", "origin=unknown"
         )):
             return src
         raise ValueError("Partially instrumented gmem.c: no changes applied")
-    for old,name in ((SVC_OLD,"SVC"),(LOADER_OLD,"loader"),
-                     (OTHER_OLD,"other"),(UNKNOWN_OLD,"unknown")):
-        if src.count(old)!=1:
-            raise ValueError(f"Expected exactly one {name} anchor, found {src.count(old)}; "
-                             "your gmem.c differs from the verified source")
-    for old,new in ((SVC_OLD,SVC_NEW),(LOADER_OLD,LOADER_NEW),
-                    (OTHER_OLD,OTHER_NEW),(UNKNOWN_OLD,UNKNOWN_NEW)):
-        src=src.replace(old,new,1)
+    changes = ((SVC_OLD, SVC_NEW, "SVC"),
+               (LOADER_OLD, LOADER_NEW, "loader"),
+               (OTHER_OLD, OTHER_NEW, "other"),
+               (UNKNOWN_OLD, UNKNOWN_NEW, "unknown"))
+    # Validate all four anchors BEFORE editing anything on disk.
+    patterns = []
+    for old, new, name in changes:
+        pattern = _pattern_for(old)
+        found = list(pattern.finditer(src))
+        if len(found) != 1:
+            raise ValueError(
+                f"Expected one {name} C block (whitespace-tolerant), "
+                f"found {len(found)}; source unchanged"
+            )
+        patterns.append((pattern, new))
+
+    for pattern, new in patterns:
+        normalized = textwrap.dedent(new).strip("\n")
+        def insert(match: re.Match[str]) -> str:
+            indent = match.group("indent")
+            return "\n".join(indent + line for line in normalized.splitlines())
+        src, count = pattern.subn(insert, src, count=1)
+        if count != 1:
+            raise ValueError("Unexpected patch anchor disappeared; source unchanged")
     return src
 
 def main()->int:

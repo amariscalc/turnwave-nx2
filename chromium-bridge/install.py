@@ -39,6 +39,35 @@ def patch_host(source):
     if replaced not in src:
         if src.count(original)!=1:raise ValueError('Host cannot locate sync completion handler')
         src=src.replace(original,replaced,1)
+    # Preserve profile.ext4 (including Apple ID cookies) and select a fresh
+    # independent profile only for Turnwave. GX creates the new EXT4 if absent.
+    profile_marker='/* TURNWAVE_ISOLATED_PROFILE_V06 */'
+    if profile_marker not in src:
+        anchor='snprintf(commands[0],sizeof(commands[0]),"%s",default_cmd);'
+        if src.count(anchor)!=1:
+            raise ValueError('Host cannot locate Turnwave browser command setup')
+        replacement=anchor+'''
+        /* TURNWAVE_ISOLATED_PROFILE_V06 */
+        /* A new GX profile for Turnwave. Do not modify the original profile.ext4. */
+        const char *old_profile = "=profile.ext4";
+        const char *new_profile = "=tw-profile-v06.ext4";
+        char *profile_arg = strstr(commands[0], old_profile);
+        if (profile_arg) {
+            size_t old_len = strlen(old_profile), new_len = strlen(new_profile);
+            size_t used = strlen(commands[0]);
+            if (new_len >= old_len &&
+                used + new_len - old_len < sizeof(commands[0])) {
+                memmove(profile_arg + new_len, profile_arg + old_len,
+                        strlen(profile_arg + old_len) + 1);
+                memcpy(profile_arg, new_profile, new_len);
+                host_log("gx: turnwave: using tw-profile-v06.ext4\\n");
+            } else {
+                host_log("gx: turnwave: isolated profile would overflow command\\n");
+            }
+        } else {
+            host_log("gx: turnwave: original profile argument missing\\n");
+        }'''
+        src=src.replace(anchor,replacement,1)
     return src
 
 def install(repo,check=False):

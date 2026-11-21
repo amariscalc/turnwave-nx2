@@ -47,7 +47,7 @@ class UpgradeTests(unittest.TestCase):
         self.assertIn('PLAY|REQUESTED|',js)
         self.assertIn('TURNWAVE_LIBRARY_V2',cfrag)
         self.assertIn('TURNWAVE_PLAY_V1',native)
-        self.assertIn('No catalog ID',native)
+        self.assertIn('No playable catalog ID',native)
         for s in (js,cfrag):
             self.assertNotIn('musicUserToken',s)
             self.assertNotIn('developerToken',s)

@@ -28,11 +28,28 @@ if [[ ! -s "$BROWSER" ]]; then
   echo "Missing Chromium NRO: $BROWSER" >&2
   exit 1
 fi
-# In a libounce NRO, this new literal must be present in the GX host code.
-if ! LC_ALL=C grep -aFq 'tw-profile-v06.ext4' "$BROWSER"; then
-  echo "Chromium NRO has no v0.6 isolated profile patch; rebuild Chromium after install.py." >&2
+# NRO sections may be compressed: searching strings in .nro is unreliable.
+# Verify the linked, uncompressed ELF produced by the same Chromium build instead.
+CONTAINER="${CHROMIUM_BUILD_CONTAINER:-chromium-nx-diagnostico-build}"
+GX_ELF="${CHROMIUM_ELF:-/work/gx-nx2/gx.elf}"
+if ! docker exec "$CONTAINER" test -s "$GX_ELF"; then
+  echo "Cannot verify Chromium: missing linked ELF $GX_ELF inside Docker container $CONTAINER" >&2
+  echo "Build Chromium first. If OUT differs, set CHROMIUM_ELF=/path/to/gx.elf." >&2
   exit 1
 fi
+if ! docker exec "$CONTAINER" grep -aFq 'tw-profile-v06.ext4' "$GX_ELF"; then
+  echo "Chromium linked ELF lacks isolated profile support. Re-run install.py and rebuild Chromium." >&2
+  exit 1
+fi
+if ! docker exec "$CONTAINER" grep -aFq 'NX2_CDM_DIAG' "$GX_ELF"; then
+  echo "WARNING: linked Chromium ELF has no NX2_CDM_DIAG memory instrumentation." >&2
+fi
+# The candidate NRO should be newer than the modified host source.
+if [[ "$CHROMIUM_REPO/gx/host_nx.c" -nt "$BROWSER" ]]; then
+  echo "The browser NRO is older than gx/host_nx.c. Rebuild and stage again." >&2
+  exit 1
+fi
+echo "Chromium linked ELF verified: isolated profile selected by Turnwave."
 mkdir -p "$STAGE/switch/TurnwaveNX2" "$STAGE/switch/chromium-nx-diagnostico"
 cp "$NATIVE" "$STAGE/switch/TurnwaveNX2/TurnwaveNX2.nro"
 cp "$BROWSER" "$STAGE/switch/chromium-nx-diagnostico/chromium-nx2-diagnostico.nro"

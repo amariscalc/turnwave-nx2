@@ -1,9 +1,40 @@
-# Turnwave NX2 v0.5.0 — Native + MusicKit catalog IDs + playback probe
+# Turnwave NX2 v0.6.0 — Native + MusicKit catalog IDs + playback probe
 
 **Estado: prototipo en pruebas reales sobre Switch 2.** La interfaz nativa
 y el salto a Chromium ya se han verificado; la sincronización de biblioteca
 y la reproducción siguen sin validar. No incluye descifrado de DRM.
 
+## Correcciones de 0.6.0
+
+La version nativa nueva debe aparecer como **0.6.0-dev** en hbmenu y
+mostrar **BUILD 0.6.0** arriba a la derecha. Si no ves esas dos señales,
+el NRO que ejecutas todavia es el anterior. El script `build-native.sh`
+borra los objetos de compilacion temporales de Docker y no reutiliza
+un NRO antiguo cuando falla la compilacion.
+
+**Turnwave usa ahora un perfil independiente en Chromium:**
+`/switch/chromium-nx-diagnostico/tw-profile-v06.ext4`.
+Chromium lo creara automaticamente desde la plantilla incluida en el
+ejecutable al iniciar Turnwave con X. No hay que borrar, renombrar,
+reparar ni sustituir `profile.ext4`. El perfil nuevo estara vacio y
+tendras que iniciar sesion en Apple Music otra vez.
+
+Esto solo modifica el perfil elegido por Turnwave: si abres Chromium
+directamente todavia intentara usar su perfil original, que puede
+seguir fallando. La creacion del nuevo perfil y el login deben
+verificarse con una prueba real en la consola.
+
+**Actualizacion completa:** ejecuta `git pull --ff-only origin main`,
+`./tests/syntax-check.sh`, `./build-native.sh`, vuelve a instalar
+`chromium-bridge/install.py` en el arbol de Chromium y ejecuta
+`docker exec -e SWITCH2=1 chromium-nx-diagnostico-build bash /project/gx/build-nx.sh`.
+Copia **los dos NRO** a sus rutas correctas: el nativo en
+`/switch/TurnwaveNX2/TurnwaveNX2.nro` y el ejecutable de GX en
+`/switch/chromium-nx-diagnostico/chromium-nx2-diagnostico.nro`.
+
+En caso de problemas, revisa `native.log`, `bridge.log` y
+`chromium-nx.log`. No afirmes que la reproduccion de Apple Music
+funciona solo porque el navegador o el inicio de sesion funcionan.
 ## Arquitectura
 
 ```text

@@ -31,7 +31,6 @@ typedef struct {
 
 static LibraryItem library[MAX_ITEMS];
 static int count, active_tab, selected, first_row;
-static int status_code;
 static char status[176] = "";
 static FILE *diag;
 static const char tabs[] = { 'P', 'A', 'S', 'R', 'N' };
@@ -47,6 +46,15 @@ static void set_status(const char *s) {
     snprintf(status,sizeof(status),"%s",s);
 }
 
+/* Copy a displayed field without risking an overflow on long metadata. */
+static void copy_field(char *dst, size_t capacity, const char *src) {
+    if (!capacity) return;
+    size_t length=strlen(src);
+    if (length>=capacity) length=capacity-1;
+    memcpy(dst,src,length);
+    dst[length]=0;
+}
+
 static void load_library(void) {
     FILE *f=fopen(LIBRARY_PATH,"r");
     count=0;selected=0;first_row=0;
@@ -59,7 +67,7 @@ static void load_library(void) {
     }
     while(count<MAX_ITEMS && fgets(line,sizeof line,f)) {
         line[strcspn(line,"\r\n")]=0;
-        if(!strchr(tabs,line[0]) || line[1]!='\t')continue;
+        if(!memchr(tabs,line[0],sizeof tabs) || line[1]!='\t')continue;
         char *parts[4]={0};int n=0;
         char *field=line+2;
         parts[n++]=field;
@@ -72,13 +80,16 @@ static void load_library(void) {
         LibraryItem *item=&library[count];memset(item,0,sizeof *item);
         item->kind=line[0];
         if(v2) {
-            snprintf(item->library_id,sizeof item->library_id,"%s",parts[0]);
-            snprintf(item->catalog_id,sizeof item->catalog_id,"%s",parts[1]);
-            snprintf(item->name,sizeof item->name,"%s",parts[2]);
-            snprintf(item->detail,sizeof item->detail,"%s",parts[3]);
+            /* Never truncate resource IDs: an altered ID could select a different item. */
+            if(strlen(parts[0])>=sizeof item->library_id ||
+               strlen(parts[1])>=sizeof item->catalog_id)continue;
+            copy_field(item->library_id,sizeof item->library_id,parts[0]);
+            copy_field(item->catalog_id,sizeof item->catalog_id,parts[1]);
+            copy_field(item->name,sizeof item->name,parts[2]);
+            copy_field(item->detail,sizeof item->detail,parts[3]);
         } else {
-            snprintf(item->name,sizeof item->name,"%s",parts[0]);
-            snprintf(item->detail,sizeof item->detail,"%s",parts[1]);
+            copy_field(item->name,sizeof item->name,parts[0]);
+            copy_field(item->detail,sizeof item->detail,parts[1]);
         }
         if(item->name[0])count++;
     }

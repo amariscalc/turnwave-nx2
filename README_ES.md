@@ -2,7 +2,7 @@
 
 **Estado: prototipo fuente. La compilación con ounce-devkit y el funcionamiento real
 sobre Nintendo Switch 2 están pendientes de validación.** No es un NRO ya probado
-ni incluye descifrado de DRM. Este paquete reemplaza la versión v0.4 y admite
+ni incluye descifrado de DRM. Esta revisión en GitHub sucede al prototipo v0.4 y admite
 actualizar su puente Chromium sin restaurar respaldos anteriores.
 
 ## Arquitectura
@@ -35,13 +35,20 @@ utiliza ni empaqueta Android, APKs, tokens o el código de descifrado.
 
 ## Instalación en WSL
 
-1. Descomprime este ZIP como `~/switch2-dev/turnwave-native-bridge`.
+1. Clona el repositorio o actualiza el código existente:
+
+```bash
+cd ~/switch2-dev
+git clone https://github.com/amariscalc/turnwave-nx2.git
+cd turnwave-nx2
+# Para futuras actualizaciones: git pull origin main
+```
 2. Mantén intactas las imágenes EXT4 y el perfil de tu copia de Chromium.
 3. Parchea el código fuente de Chromium (el instalador es idempotente y puede
    actualizar un puente v0.4 ya instalado):
 
 ```bash
-cd ~/switch2-dev/turnwave-native-bridge
+cd ~/switch2-dev/turnwave-nx2
 ./tests/syntax-check.sh
 python3 chromium-bridge/install.py ~/switch2-dev/chromium-nx-diagnostico --check
 python3 chromium-bridge/install.py ~/switch2-dev/chromium-nx-diagnostico
@@ -65,7 +72,7 @@ con el NRO nativo de Turnwave.
 5. Compila el **NRO nativo** desde WSL:
 
 ```bash
-cd ~/switch2-dev/turnwave-native-bridge
+cd ~/switch2-dev/turnwave-nx2
 ./build-native.sh
 ```
 

@@ -94,6 +94,26 @@ Copia la salida `native/TurnwaveNX2.nro` a
 - **B/+ (Turnwave nativo):** cerrar Turnwave. En Chromium el control de salida
   depende del navegador y del modo de pantalla usado.
 
+## Diagnóstico cuando Chromium no vuelve automáticamente a Turnwave
+
+Después del login, la sesión web puede estar iniciada sin que
+`MusicKit.getInstance()` esté disponible o autorizado. Para separar
+estos casos, el puente diagnóstico genera:
+
+- `sdmc:/switch/TurnwaveNX2/bridge.log`: estados de MusicKit, consultas
+  de biblioteca, guardado en SD y disponibilidad EME/Widevine.
+- `sdmc:/switch/chromium-nx-diagnostico/chromium-nx.log`: debería registrar
+  `gx: turnwave: CDP page injection queued` al inyectar el script.
+  Que se encole no garantiza que JavaScript lo haya ejecutado.
+
+`DIAG|WIDEVINE_ACCESS|NotSupportedError` indica que la configuración
+EME de prueba fue rechazada; **no confirma por sí solo** la causa del
+fallo de reproducción de Apple Music.
+
+No se registran contraseñas, cookies ni tokens. Para instalar los
+diagnósticos ejecuta otra vez `chromium-bridge/install.py` y recompila
+**solo Chromium NX2**. No modifiques las imágenes EXT4 ni el perfil.
+
 ## Cómo interpretar `playback.log`
 
 Archivo: `sdmc:/switch/TurnwaveNX2/playback.log`.

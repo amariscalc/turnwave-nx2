@@ -24,6 +24,16 @@ class UpgradeTests(unittest.TestCase):
         self.assertEqual(cdp,patch_cdp(CDP_SAMPLE))
         self.assertEqual(host,patch_host(HOST_SAMPLE))
 
+    def test_bridge_diagnostic_contract(self):
+        js=(ROOT/'chromium-bridge/sync.js').read_text()
+        c=(ROOT/'chromium-bridge/gx_music_bridge.cfrag').read_text()
+        self.assertIn("diag('MUSICKIT', 'authorized')",js)
+        self.assertIn("diag('MUSICKIT', 'unauthorized')",js)
+        self.assertIn("diag('WIDEVINE_ACCESS'",js)
+        self.assertIn('DIAG|LIBRARY_FILE|open_failed',c)
+        self.assertIn('CDP page injection queued',c)
+        self.assertIn('bridge.log',c)
+
     def test_protocol_and_no_private_tokens(self):
         js=(ROOT/'chromium-bridge/sync.js').read_text()
         cfrag=(ROOT/'chromium-bridge/gx_music_bridge.cfrag').read_text()

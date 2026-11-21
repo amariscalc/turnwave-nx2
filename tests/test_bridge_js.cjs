@@ -31,6 +31,9 @@ async function run() {
   assert.ok(messages.includes('BEGIN|2'));
   assert.ok(messages.some(x=>x.includes('ITEM|S|i.EXAMPLE_LIBRARY_ID|123456789|Example%20Track|Example%20Artist')));
   assert.ok(messages.includes('END'));
+  assert.ok(messages.includes('DIAG|MUSICKIT|authorized'));
+  assert.ok(messages.includes('DIAG|EME_API|missing'));
+  assert.ok(messages.includes('DIAG|SYNC_MESSAGES_SENT|1'));
   assert.ok(messages.includes('PLAY|REQUESTED|123456789'));
   assert.ok(messages.some(x=>x.startsWith('PLAY|STATE|playing|7')));
   console.log('Mock MusicKit: V2 IDs + playback request + status OK');

@@ -39,8 +39,27 @@ static void tw_native_record_playback(const char *message)
     fprintf(tw_native_playback_file, "%s\n", safe);
     fflush(tw_native_playback_file);
 }
+/* Diagnostic channel logs only fixed states; no user data. */
+static void tw_native_record_diagnostic(const char *message)
+{
+    static FILE *file;
+    if (!file) {
+        mkdir("sdmc:/switch/TurnwaveNX2", 0777);
+        file = fopen("sdmc:/switch/TurnwaveNX2/bridge.log", "a");
+    }
+    if (!file) return;
+    char safe[160];
+    tw_decode(safe, sizeof safe, message);
+    fprintf(file, "%s\n", safe);
+    fflush(file);
+    host_log("gx: turnwave: %s\n", safe);
+}
 static void tw_sync_message(const char *message)
 {
+    if (!strncmp(message, "DIAG|", 5)) {
+        tw_native_record_diagnostic(message);
+        return;
+    }
     if (!strncmp(message,"PLAY|",5)) {
         tw_native_record_playback(message);
         return;
@@ -51,7 +70,12 @@ static void tw_sync_message(const char *message)
         tw_native_sync_file = fopen("sdmc:/switch/TurnwaveNX2/library.tsv.part", "w");
         tw_native_sync_items = 0;
         __atomic_store_n(&tw_native_sync_complete, 0, __ATOMIC_RELEASE);
-        if (tw_native_sync_file) fputs("TURNWAVE_LIBRARY_V2\n", tw_native_sync_file);
+        if (tw_native_sync_file) {
+            fputs("TURNWAVE_LIBRARY_V2\n", tw_native_sync_file);
+            tw_native_record_diagnostic("DIAG|LIBRARY_FILE|opened");
+        } else {
+            tw_native_record_diagnostic("DIAG|LIBRARY_FILE|open_failed");
+        }
         return;
     }
     if (!strcmp(message,"ABORT")) {
@@ -73,7 +97,10 @@ static void tw_sync_message(const char *message)
         if (ok) {
             host_log("gx: turnwave: library V2 exported: %u resources\n",tw_native_sync_items);
             __atomic_store_n(&tw_native_sync_complete, 1, __ATOMIC_RELEASE);
-        } else host_log("gx: turnwave: library V2 export FAILED\n");
+        } else {
+            host_log("gx: turnwave: library V2 export FAILED\n");
+            tw_native_record_diagnostic("DIAG|LIBRARY_FILE|save_failed");
+        }
         return;
     }
     if (!tw_native_sync_file || tw_native_sync_items >= 180 || strncmp(message,"ITEM|",5)) return;
@@ -138,6 +165,7 @@ static void tw_native_send(const char *sid, const char *method, const char *fiel
 }
 static void tw_native_inject(const char *sid)
 {
+    host_log("gx: turnwave: CDP page injection queued\n");
     send_command(sid,"Runtime.addBinding","{\"name\":\"gxTurnwaveSync\"}");
     tw_native_inject_play_target(sid);
     tw_native_send(sid,"Page.addScriptToEvaluateOnNewDocument","source");

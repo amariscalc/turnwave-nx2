@@ -62,14 +62,13 @@ for i in range(7):
     draw=ImageDraw.Draw(art)
     draw.ellipse((114,y0+11,132,y0+29),outline='#a6b1dd',width=2)
     draw.ellipse((120,y0+17,126,y0+23),fill='#c3b5ee')
-# translucent seek line and media buttons
-glass((730,429,1170,433),2,(113,94,174),'#6e5d98',18)
-glass((754,470,1148,524),25,(97,74,159),'#b2a6dd',42)
-label((952,495),'Connect Apple Music',18,True,anchor='mm')
-label((724,559),'A / X  Apple ID login via Chromium',15,color='#d0d7ec')
-label((100,576),'L / R  Sections   Up / Down  Browse   Y  Reload',14,color='#c9cee6')
-glass((64,632,1217,679),22,(28,42,64),'#555d78',24)
-label((95,653),'Native Turnwave NX2   ·   Library sync via MusicKit   ·   + Exit',15,color='#d6def4',anchor='lm')
+# Reserved right-panel details end above the separator.
+# The button label and status are drawn dynamically by native/source/main.c.
+glass((730,468,1170,471),2,(113,94,174),'#6e5d98',18)
+glass((754,484,1148,543),25,(97,74,159),'#b2a6dd',42)
+# Global footer contains one controls hint and one separate dynamic status.
+glass((64,621,1217,708),24,(28,42,64),'#555d78',24)
+label((96,633),'L/R  Sections     Up/Down  Browse     X  Connect / Sync     Y  Reload     B/+  Exit',15,color='#d6def4')
 (OUT/'home.rgba').write_bytes(art.tobytes())
 art.save(OUT/'home.png',optimize=True)
 # ASCII + Latin-1 font sheets; glyphs include each 32..255 code point,

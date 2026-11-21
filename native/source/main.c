@@ -183,7 +183,7 @@ static int render(Framebuffer *fb) {
 
     int available=visible_count();
     draw_text(pixels,stride,495,224,612,tab_names[active_tab],16,224,217,255);
-    draw_text(pixels,stride,735,260,1160,available?"Connected library":"Connect your Apple ID",22,236,230,255);
+    draw_text(pixels,stride,735,260,1160,available?"Your library is ready":"Connect your Apple ID",22,236,230,255);
     char counter[100];
     snprintf(counter,sizeof counter,"%d in %s",available,tab_names[active_tab]);
     draw_text(pixels,stride,735,310,1170,counter,16,204,191,241);
@@ -194,17 +194,23 @@ static int render(Framebuffer *fb) {
         if(first_row+row==selected)
             shade_rect(pixels,stride,96,y,534,40,131,109,226,105);
         draw_text(pixels,stride,148,y+2,604,item->name,16,255,252,255);
-        if(row==0) draw_text(pixels,stride,737,364,1165,item->detail[0]?item->detail:"Apple Music",16,207,205,239);
     }
+    /* The selection occupies its own fixed lines above the separator.
+     * The action button and bottom status have separate dedicated areas. */
     const LibraryItem *cur=visible_item(selected);
     if(cur) {
-        draw_text(pixels,stride,742,413,1165,cur->name,16,234,229,255);
-        draw_text(pixels,stride,742,451,1165,cur->detail,16,209,199,237);
+        draw_text(pixels,stride,737,348,1165,cur->name,16,234,229,255);
+        draw_text(pixels,stride,737,388,1165,cur->detail,16,209,199,237);
         if(cur->kind=='S')
-            draw_text(pixels,stride,742,502,1165,cur->catalog_id[0]?"A: Try song in Chromium":"No catalog ID for this track",16,209,199,237);
+            draw_text(pixels,stride,737,427,1165,cur->catalog_id[0]?"A: Try song in Chromium":"Song unavailable by catalog ID",16,209,199,237);
+    } else {
+        draw_text(pixels,stride,737,348,1165,"Press X to synchronize your library",16,209,199,237);
     }
-    draw_text(pixels,stride,742,570,1165,"X: Connect/Sync    Y: Reload",16,209,199,237);
-    draw_text(pixels,stride,95,687,1210,status,16,230,221,255);
+    draw_text(pixels,stride,822,499,1138,
+              count?"X  Sync Apple Music":"X  Connect Apple Music",22,255,252,255);
+    /* Single footer: the static background displays controls only.
+     * The runtime status is always beneath them, never on top. */
+    draw_text(pixels,stride,95,663,1200,status,16,230,221,255);
     framebufferEnd(fb);
     return 1;
 }

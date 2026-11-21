@@ -1,9 +1,8 @@
 # Turnwave NX2 v0.5.0 — Native + MusicKit catalog IDs + playback probe
 
-**Estado: prototipo fuente. La compilación con ounce-devkit y el funcionamiento real
-sobre Nintendo Switch 2 están pendientes de validación.** No es un NRO ya probado
-ni incluye descifrado de DRM. Esta revisión en GitHub sucede al prototipo v0.4 y admite
-actualizar su puente Chromium sin restaurar respaldos anteriores.
+**Estado: prototipo en pruebas reales sobre Switch 2.** La interfaz nativa
+y el salto a Chromium ya se han verificado; la sincronización de biblioteca
+y la reproducción siguen sin validar. No incluye descifrado de DRM.
 
 ## Arquitectura
 
@@ -81,6 +80,40 @@ Copia la salida `native/TurnwaveNX2.nro` a
 
 **Configuración opcional:** si el `.nro` de Chromium está en otra ruta, crea
 `sdmc:/switch/TurnwaveNX2/chromium-nro.txt` con la ruta absoluta `sdmc:/switch/...nro`.
+
+## Recuperación del perfil Chromium tras exit code 21 / errores EXT4
+
+El código original de Chromium NX ya intenta eliminar los bloqueos
+`SingletonLock`, `SingletonCookie` y `SingletonSocket` al arrancar.
+Si aparece `EXT4-fs error` junto con `ProcessSingleton` y salida 21,
+**no borres** la sesión. Puede haber metadatos EXT4 dañados; hay que
+inspeccionar/reparar la imagen sobre una copia fuera de la consola.
+
+1. Cierra Chromium y kaiHEN; copia por USB o FTP a tu PC el archivo
+   `/switch/chromium-nx-diagnostico/profile.ext4`. No modifiques el archivo
+   de la consola mientras el navegador está abierto.
+2. Desde WSL instala `e2fsprogs` si no está instalado y ejecuta:
+
+```bash
+sudo apt install -y e2fsprogs
+cd ~/switch2-dev/turnwave-nx2
+python3 tools/recover_profile.py ~/switch2-dev/profile.ext4
+```
+
+3. El script conserva `profile.ext4.original` y genera
+   `profile.ext4.repaired` en `~/turnwave-profile-recovery/run-...`.
+   Ejecuta `e2fsck` **solo en una copia**, limpia bloqueos temporales y
+   comprueba la consistencia del sistema de archivos. No se borran
+   cookies ni contraseñas intencionadamente, aunque `e2fsck` podría
+   descartar estructuras dañadas. Guarda el respaldo.
+4. Si informa `RECOVERY OK`, cierra cualquier app que use el perfil y
+   copia el archivo reparado de nuevo a
+   `/switch/chromium-nx-diagnostico/profile.ext4`.
+   Arranca Chromium y verifica si conserva la sesión.
+
+Si no puede recuperarlo, **no sobrescribas el original**. Guárdalo para
+investigación; solo después, y por decisión expresa, se podrá arrancar
+con una nueva imagen `profile.ext4` (con necesidad de iniciar sesión).
 
 ## Controles
 

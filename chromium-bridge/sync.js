@@ -1,4 +1,4 @@
-/* Turnwave NX2 v0.5 MusicKit bridge. Runs only at music.apple.com.
+/* Turnwave NX2 v0.6 MusicKit bridge. Runs only at music.apple.com.
  * The native IPC includes resource IDs and public library metadata, never
  * credentials, DRM material or MusicKit authorization tokens.
  */
@@ -15,6 +15,7 @@
   ];
   let synchronized = false, busy = false, playbackRequested = false;
   const emittedDiagnostics = new Set();
+  const pendingDiagnostics = new Set();
   let emeChecked = false;
   const clean = (text, limit=130) => String(text ?? '').replace(/[\t\n\r\u0000-\u001f]/g, ' ').trim().slice(0, limit);
   const pack = (text, limit=130) => encodeURIComponent(clean(text, limit));
@@ -23,13 +24,24 @@
     window.gxTurnwaveSync(message);
   }
   // Report fixed diagnostic states only: never record cookies, tokens or URLs.
+  function flushDiagnostics() {
+    for (const message of pendingDiagnostics) {
+      if (emittedDiagnostics.has(message)) {
+        pendingDiagnostics.delete(message);
+        continue;
+      }
+      try {
+        emit(message);
+        emittedDiagnostics.add(message);
+        pendingDiagnostics.delete(message);
+      } catch (_) { /* Re-attempt on next tick once CDP binding is ready. */ }
+    }
+  }
   function diag(state, detail='') {
     const message = `DIAG|${state}${detail ? '|'+clean(detail, 55) : ''}`;
     if (emittedDiagnostics.has(message)) return;
-    try {
-      emit(message);
-      emittedDiagnostics.add(message);
-    } catch (_) { /* Binding may not exist yet; retry on next tick. */ }
+    pendingDiagnostics.add(message);
+    flushDiagnostics();
   }
   async function probeEme() {
     if (emeChecked) return;
@@ -41,13 +53,27 @@
     }
     diag('EME_API', 'present');
     try {
-      await navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
+      const access = await navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
         initDataTypes: ['cenc'],
         audioCapabilities: [{contentType: 'audio/mp4; codecs="mp4a.40.2"'}]
       }]);
       diag('WIDEVINE_ACCESS', 'supported');
+      // A registered CDM may still fail to load. Creating MediaKeys is an
+      // independent initialization test (no license or protected media used).
+      if (typeof access.createMediaKeys !== 'function') {
+        diag('CDM_CREATE', 'missing');
+        return;
+      }
+      diag('CDM_CREATE', 'starting');
+      try {
+        await access.createMediaKeys();
+        diag('CDM_CREATE', 'success');
+      } catch (error) {
+        diag('CDM_CREATE', clean(error?.name || 'rejected', 40));
+      }
     } catch (error) {
-      // Rejection does not establish the cause of an Apple Music failure.
+      // NotSupportedError does not prove whether the cause is binary,
+      // policy, codecs, key-system registration, or an unsupported API.
       diag('WIDEVINE_ACCESS', clean(error?.name || 'rejected', 40));
     }
   }
@@ -123,6 +149,10 @@
   }
   function tick() {
     try {
+      // Probe EME independently of Apple ID authorization. The previous
+      // implementation only probed after MusicKit was authorized.
+      flushDiagnostics();
+      if (!emeChecked) void probeEme();
       // Web login and MusicKit authorization are independent states.
       const mk = window.MusicKit?.getInstance?.();
       if (!mk) {
@@ -134,7 +164,6 @@
         return;
       }
       diag('MUSICKIT', 'authorized');
-      if (!emeChecked) void probeEme();
       if (!mk.api || typeof mk.api.music !== 'function') {
         diag('LIBRARY_API', 'missing');
         return;

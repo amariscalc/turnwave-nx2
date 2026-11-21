@@ -178,6 +178,50 @@ No se registran contraseñas, cookies ni tokens. Para instalar los
 diagnósticos ejecuta otra vez `chromium-bridge/install.py` y recompila
 **solo Chromium NX2**. No modifiques las imágenes EXT4 ni el perfil.
 
+## Comparar Widevine 4.10.3112.0 con la instalacion nueva (solo lectura)
+
+En las pruebas del 20 de noviembre, el CDM ARM64 se encontraba en una
+imagen de **perfil**, no en `chromium-full.ext4`:
+
+`/profile/WidevineCdm/4.10.3112.0/_platform_specific/linux_arm64/libwidevinecdm.so`
+
+Una copia identificada como `profiledanado.ext4` contenia la biblioteca
+(20.041.928 bytes). El perfil nuevo de v0.6 se crea vacio, por lo que
+**no debe suponerse que incluye Widevine**. El estado `Enabled` que
+mostro `chrome://media-internals` solo acredita el registro del CDM:
+en pruebas posteriores hubo `failed to map segment`, `mmap ... refused:
+-12` y `no veneer left for the svc`. La carga real no se confirmo.
+
+Para comparar copias **offline** de imagenes EXT4, sin montar, reparar,
+extraer credenciales ni escribir en la tarjeta SD, ejecutar en WSL:
+
+```bash
+sudo apt install -y sleuthkit
+python3 tools/audit_widevine.py \
+  /mnt/c/NintendoSwitch/profiledanado.ext4 \
+  /mnt/c/NintendoSwitch/tw-profile-v06.ext4
+```
+
+Ajustar los nombres a las copias reales existentes; no se necesitan ambas
+para inspeccionar una de ellas. Nunca sustituir una imagen con la otra.
+El script enumera solo los nombres que contienen `Widevine` o `CDM`.
+
+El puente v0.6 consulta EME **antes de la autorizacion MusicKit**, y
+registra en `bridge.log`:
+
+- `DIAG|EME_API|present`: la API EME esta expuesta.
+- `DIAG|WIDEVINE_ACCESS|supported`: Chromium acepta los parametros EME.
+- `DIAG|CDM_CREATE|starting`: se solicita la instancia MediaKeys.
+- `DIAG|CDM_CREATE|success`: se creo MediaKeys; aun no prueba descifrado.
+- `DIAG|CDM_CREATE|NotSupportedError` u otro error: fallo al inicializar CDM.
+
+Si la prueba de MediaKeys falla, comprobar tambien el log de GX para
+errores `mmap`, `veneer`, `dlopen`, `failed to map segment` o biblioteca
+ausente. La diferencia entre registro, carga y descifrado es esencial.
+Para desplegar esta instrumentacion hay que volver a ejecutar
+`chromium-bridge/install.py` y recompilar **Chromium NX2**; el NRO
+nativo de Turnwave no necesita cambios.
+
 ## Cómo interpretar `playback.log`
 
 Archivo: `sdmc:/switch/TurnwaveNX2/playback.log`.

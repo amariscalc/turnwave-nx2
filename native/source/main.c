@@ -181,36 +181,40 @@ static int render(Framebuffer *fb) {
     for(int y=0;y<HEIGHT;y++)
         memcpy(pixels+(size_t)y*stride,tw_home+(size_t)y*WIDTH*4,WIDTH*4);
 
-    int available=visible_count();
-    draw_text(pixels,stride,495,224,612,tab_names[active_tab],16,224,217,255);
-    draw_text(pixels,stride,735,260,1160,available?"Your library is ready":"Connect your Apple ID",22,236,230,255);
-    char counter[100];
-    snprintf(counter,sizeof counter,"%d in %s",available,tab_names[active_tab]);
-    draw_text(pixels,stride,735,310,1170,counter,16,204,191,241);
+    /* Layout v0.6: fixed, non-overlapping text bands. */
+    const int available=visible_count();
+    draw_text(pixels,stride,554,173,694,tab_names[active_tab],16,224,217,255);
     for(int row=0;row<7;row++) {
         const LibraryItem *item=visible_item(first_row+row);
         if(!item)break;
-        int y=266+44*row;
+        int y=247+47*row;
         if(first_row+row==selected)
-            shade_rect(pixels,stride,96,y,534,40,131,109,226,105);
-        draw_text(pixels,stride,148,y+2,604,item->name,16,255,252,255);
+            shade_rect(pixels,stride,94,y,610,41,115,100,221,105);
+        draw_text(pixels,stride,152,y+5,686,item->name,16,255,252,255);
     }
-    /* The selection occupies its own fixed lines above the separator.
-     * The action button and bottom status have separate dedicated areas. */
+    draw_text(pixels,stride,795,255,1185,
+              count?"Your music is connected":"Connect to Apple Music",
+              22,245,241,255);
+    char counter[96];
+    snprintf(counter,sizeof counter,"%d in %s",available,tab_names[active_tab]);
+    draw_text(pixels,stride,795,307,1185,counter,16,200,193,238);
+
     const LibraryItem *cur=visible_item(selected);
     if(cur) {
-        draw_text(pixels,stride,737,348,1165,cur->name,16,234,229,255);
-        draw_text(pixels,stride,737,388,1165,cur->detail,16,209,199,237);
+        draw_text(pixels,stride,795,368,1185,cur->name,16,249,245,255);
+        draw_text(pixels,stride,795,407,1185,cur->detail,16,211,204,243);
         if(cur->kind=='S')
-            draw_text(pixels,stride,737,427,1165,cur->catalog_id[0]?"A: Try song in Chromium":"Song unavailable by catalog ID",16,209,199,237);
+            draw_text(pixels,stride,795,445,1185,
+                      cur->catalog_id[0]?"A  Try song in Chromium":"No playable catalog ID",
+                      16,198,192,237);
     } else {
-        draw_text(pixels,stride,737,348,1165,"Press X to synchronize your library",16,209,199,237);
+        draw_text(pixels,stride,795,368,1185,
+                  "Press X to connect or sync",16,211,204,243);
     }
-    draw_text(pixels,stride,822,499,1138,
-              count?"X  Sync Apple Music":"X  Connect Apple Music",22,255,252,255);
-    /* Single footer: the static background displays controls only.
-     * The runtime status is always beneath them, never on top. */
-    draw_text(pixels,stride,95,663,1200,status,16,230,221,255);
+    draw_text(pixels,stride,833,521,1162,
+              count?"X  Sync Apple Music":"X  Connect Apple Music",
+              22,255,253,255);
+    draw_text(pixels,stride,98,672,1190,status,16,228,223,253);
     framebufferEnd(fb);
     return 1;
 }

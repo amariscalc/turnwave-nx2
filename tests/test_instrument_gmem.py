@@ -22,6 +22,29 @@ class GmemInstrumentationTests(unittest.TestCase):
             self.assertIn(old,updated)
         self.assertEqual(m.patch_source(updated),updated)
 
+    def test_accepts_tabs_and_windows_line_endings(self):
+        original="\n".join((m.LOADER_OLD,m.OTHER_OLD,m.UNKNOWN_OLD,m.SVC_OLD))
+        # Reproduce the indentation and line ending differences seen in GX.
+        lines=original.splitlines()
+        tabbed="\r\n".join(
+            ("\t" * ((len(line)-len(line.lstrip(" "))) // 4)) + line.lstrip(" ")
+            for line in lines
+        )
+        updated=m.patch_source(tabbed)
+        self.assertIn("veneer=no-image",updated)
+        self.assertIn("veneer=exhausted",updated)
+        self.assertIn("origin=loader",updated)
+        self.assertIn("origin=other",updated)
+        self.assertIn("origin=unknown",updated)
+        self.assertEqual(m.patch_source(updated),updated)
+
+    def test_rejects_changed_allocator_semantics(self):
+        original="\n".join((m.LOADER_OLD,m.OTHER_OLD,m.UNKNOWN_OLD,m.SVC_OLD))
+        changed=original.replace("VENEER_SIZE > img->pool_end",
+                                "VENEER_SIZE >= img->pool_end")
+        with self.assertRaisesRegex(ValueError,"SVC"):
+            m.patch_source(changed)
+
     def test_refuses_unrecognized_source_and_partial_patch(self):
         with self.assertRaisesRegex(ValueError,"SVC anchor"):
             m.patch_source("int main(void) { return 0; }")

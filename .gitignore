@@ -2,3 +2,9 @@
 /TurnwaveNX2.nacp
 /TurnwaveNX2.nro
 /build/
+/native/build/
+/native/TurnwaveNX2.nro
+/native/TurnwaveNX2.elf
+/native/TurnwaveNX2.nacp
+**/*.before-turnwave-v05
+**/__pycache__/

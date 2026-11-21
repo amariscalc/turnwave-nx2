@@ -1,0 +1,146 @@
+/* TURNWAVE_NATIVE_MUSICKIT_BRIDGE_V1 */
+/* v0.5: metadata + library/catalog IDs; playback is a foreground GX probe. */
+static volatile int tw_native_sync_complete;
+static FILE *tw_native_sync_file;
+static FILE *tw_native_playback_file;
+static unsigned tw_native_sync_items;
+int tw_sync_ready(void) { return __atomic_load_n(&tw_native_sync_complete, __ATOMIC_ACQUIRE); }
+static int tw_unhex(char c)
+{
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    return -1;
+}
+static void tw_decode(char *dst, size_t cap, const char *src)
+{
+    size_t n = 0;
+    while (*src && n + 1 < cap) {
+        unsigned char c = (unsigned char)*src++;
+        if (c == '%' && src[0] && src[1]) {
+            int a = tw_unhex(src[0]), b = tw_unhex(src[1]);
+            if (a >= 0 && b >= 0) { c = (unsigned char)(a * 16 + b); src += 2; }
+        }
+        if (c < 32 || c == 127 || c == '\t' || c == '\r' || c == '\n') c = ' ';
+        dst[n++] = (char)c;
+    }
+    dst[n] = 0;
+}
+static void tw_native_record_playback(const char *message)
+{
+    if (!tw_native_playback_file) {
+        mkdir("sdmc:/switch/TurnwaveNX2", 0777);
+        tw_native_playback_file = fopen("sdmc:/switch/TurnwaveNX2/playback.log", "a");
+    }
+    if (!tw_native_playback_file) return;
+    /* Only fixed-format playback status, not MusicKit secrets. */
+    char safe[256];
+    tw_decode(safe, sizeof(safe), message);
+    fprintf(tw_native_playback_file, "%s\n", safe);
+    fflush(tw_native_playback_file);
+}
+static void tw_sync_message(const char *message)
+{
+    if (!strncmp(message,"PLAY|",5)) {
+        tw_native_record_playback(message);
+        return;
+    }
+    if (!strcmp(message,"BEGIN|2")) {
+        if (tw_native_sync_file) fclose(tw_native_sync_file);
+        mkdir("sdmc:/switch/TurnwaveNX2", 0777);
+        tw_native_sync_file = fopen("sdmc:/switch/TurnwaveNX2/library.tsv.part", "w");
+        tw_native_sync_items = 0;
+        __atomic_store_n(&tw_native_sync_complete, 0, __ATOMIC_RELEASE);
+        if (tw_native_sync_file) fputs("TURNWAVE_LIBRARY_V2\n", tw_native_sync_file);
+        return;
+    }
+    if (!strcmp(message,"ABORT")) {
+        if (tw_native_sync_file) fclose(tw_native_sync_file);
+        tw_native_sync_file = NULL;
+        remove("sdmc:/switch/TurnwaveNX2/library.tsv.part");
+        return;
+    }
+    if (!strcmp(message,"END")) {
+        if (!tw_native_sync_file) return;
+        int ok = fflush(tw_native_sync_file) == 0;
+        ok &= fclose(tw_native_sync_file) == 0;
+        tw_native_sync_file = NULL;
+        if (ok) {
+            remove("sdmc:/switch/TurnwaveNX2/library.tsv");
+            ok = rename("sdmc:/switch/TurnwaveNX2/library.tsv.part",
+                        "sdmc:/switch/TurnwaveNX2/library.tsv") == 0;
+        }
+        if (ok) {
+            host_log("gx: turnwave: library V2 exported: %u resources\n",tw_native_sync_items);
+            __atomic_store_n(&tw_native_sync_complete, 1, __ATOMIC_RELEASE);
+        } else host_log("gx: turnwave: library V2 export FAILED\n");
+        return;
+    }
+    if (!tw_native_sync_file || tw_native_sync_items >= 180 || strncmp(message,"ITEM|",5)) return;
+    const char kind = message[5];
+    if (!strchr("PASRN",kind) || message[6]!='|') return;
+    char fields[4][540]={{0}};
+    const char *p=message+7;
+    for (int i=0;i<4;i++) {
+        const char *end = i==3 ? p+strlen(p) : strchr(p,'|');
+        if (!end || (size_t)(end-p)>=sizeof fields[i]) return;
+        memcpy(fields[i],p,(size_t)(end-p));
+        fields[i][end-p]=0;
+        p = *end ? end+1 : end;
+    }
+    char libraryid[96], catalogid[64], name[168], detail[168];
+    tw_decode(libraryid,sizeof libraryid,fields[0]);
+    tw_decode(catalogid,sizeof catalogid,fields[1]);
+    tw_decode(name,sizeof name,fields[2]);
+    tw_decode(detail,sizeof detail,fields[3]);
+    if (!name[0] || !libraryid[0]) return;
+    if (fprintf(tw_native_sync_file,"%c\t%s\t%s\t%s\t%s\n",
+            kind,libraryid,catalogid,name,detail)>0) ++tw_native_sync_items;
+}
+/* Only inject a decimal catalog ID from the native play-request file. */
+static void tw_native_inject_play_target(const char *sid)
+{
+    FILE *f=fopen("sdmc:/switch/TurnwaveNX2/play-request.txt","r");
+    if (!f) return;
+    char header[64], id[48];
+    int valid = fgets(header,sizeof header,f) && !strcmp(header,"TURNWAVE_PLAY_V1\n")
+        && fgets(id,sizeof id,f);
+    fclose(f);
+    if (!valid) return;
+    id[strcspn(id,"\r\n")]=0;
+    size_t n=strlen(id);
+    if (n<2 || n>30) return;
+    for (size_t i=0;i<n;i++) if (id[i]<'0' || id[i]>'9') return;
+    char params[200];
+    snprintf(params,sizeof params,
+        "{\"expression\":\"window.__twPlayCatalogId='%s';\"}",id);
+    /* The URL may navigate to Apple ID and back; persist the requested ID
+     * in every new document before the MusicKit bridge script starts. */
+    char source[200];
+    snprintf(source,sizeof source,
+        "{\"source\":\"window.__twPlayCatalogId='%s';\"}",id);
+    send_command(sid,"Page.addScriptToEvaluateOnNewDocument",source);
+    send_command(sid,"Runtime.evaluate",params);
+}
+static void tw_native_send(const char *sid, const char *method, const char *field)
+{
+    size_t len=strlen(tw_native_sync_script);
+    if (len>128000) return;
+    size_t cap=len*6+1024;
+    char *escaped=malloc(cap), *msg=malloc(cap+512);
+    if (!escaped || !msg) { free(escaped); free(msg); return; }
+    json_escape(escaped,cap,tw_native_sync_script);
+    int n=snprintf(msg,cap+512,
+        "{\"id\":%d,\"sessionId\":\"%s\",\"method\":\"%s\",\"params\":{\"%s\":\"%s\"}}",
+        next_id++,sid,method,field,escaped);
+    if (n>0 && (size_t)n<cap+512) send_text(msg,(size_t)n);
+    free(msg); free(escaped);
+}
+static void tw_native_inject(const char *sid)
+{
+    send_command(sid,"Runtime.addBinding","{\"name\":\"gxTurnwaveSync\"}");
+    tw_native_inject_play_target(sid);
+    tw_native_send(sid,"Page.addScriptToEvaluateOnNewDocument","source");
+    tw_native_send(sid,"Runtime.evaluate","expression");
+}
+

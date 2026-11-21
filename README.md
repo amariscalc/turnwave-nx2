@@ -1,5 +1,33 @@
 # Turnwave NX2
 
+## v0.5.0 experimental — native UI + Chromium MusicKit playback probe
+
+**Status: source prototype only. Not built or tested on Nintendo Switch 2 hardware. No DRM bypass or confirmed audio playback.**
+
+The main Turnwave interface is native, while a separately built Chromium NX2 instance handles Apple Music sign-in, library sync, and an experimental `MusicKit.setQueue()` / `play()` probe. The architecture is informed by [AMTV](https://github.com/megarohas/apple-music-android-tv), which runs the official Apple Music web player, but Turnwave does not execute Android or bundle the AMTV APK.
+
+See the complete **[v0.5.0 setup, controls and diagnostics](README_ES.md)** (Spanish).
+
+### Obtain/update source in WSL
+
+```bash
+git clone https://github.com/amariscalc/turnwave-nx2.git
+cd turnwave-nx2
+./tests/syntax-check.sh
+python3 chromium-bridge/install.py ~/switch2-dev/chromium-nx-diagnostico --check
+python3 chromium-bridge/install.py ~/switch2-dev/chromium-nx-diagnostico
+```
+
+After rebuilding Chromium with your existing Docker toolchain, build Turnwave native with `./build-native.sh` (requires your ounce-devkit container plus Pillow/NumPy/Open Sans fonts).
+
+Update future changes with `git pull` instead of handling source ZIPs.
+
+The old v1.3.3 applet prototype is retained in the original top-level `source/`, `design/`, and `Makefile`; the **new application lives in `native/`**.
+
+---
+
+## Previous version: v1.3.3 OpenWeb applet
+
 Turnwave NX2 is a homebrew application for Nintendo Switch 2 that opens the official Apple Music web player. It has a controller-friendly home screen and connects directly to Apple Music through the system web applet. Setup requires no extra server or Apple Developer credentials.
 
 ![Turnwave NX2 home screen with the Open Apple Music button](docs/home-screen.webp)

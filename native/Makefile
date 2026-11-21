@@ -3,7 +3,7 @@ $(error Set DEVKITPRO to your devkitPro installation)
 endif
 include $(DEVKITPRO)/libounce/switch2_rules
 TARGET := TurnwaveNX2
-VERSION := 0.5.0-dev
+VERSION := 0.6.0-dev
 ARCH := $(SWITCH2_CPU) -mtp=soft -fPIE
 CPPFLAGS += -I$(LIBNX)/include
 CFLAGS := $(ARCH) -O2 -Wall -Wextra -ffunction-sections

@@ -16,6 +16,9 @@ class UpgradeTests(unittest.TestCase):
         self.assertIn('tw_native_inject_play_target',patch_cdp(CDP_SAMPLE))
         self.assertIn('tw_play_mode',patch_host(HOST_SAMPLE))
         self.assertIn('!tw_play_mode && tw_sync_ready()',patch_host(HOST_SAMPLE))
+        self.assertIn('tw-profile-v06.ext4',patch_host(HOST_SAMPLE))
+        self.assertIn('TURNWAVE_ISOLATED_PROFILE_V06',patch_host(HOST_SAMPLE))
+        self.assertNotIn('profile.ext4.repaired',patch_host(HOST_SAMPLE))
 
     def test_v04_to_v05(self):
         from install_v04 import patch_cdp as old_cdp,patch_host as old_host

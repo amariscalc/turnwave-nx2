@@ -1,0 +1,33 @@
+name: Native Engine Host Tests
+on:
+  push:
+    branches:
+      - feature/native-player-core
+    paths:
+      - 'standalone/**'
+      - '.github/workflows/native-engine.yml'
+  pull_request:
+    paths:
+      - 'standalone/**'
+      - '.github/workflows/native-engine.yml'
+jobs:
+  portable-native-core:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install native test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libcurl4-openssl-dev python3-numpy python3-pil fonts-dejavu-core
+      - name: Test WAV, catalog JSON, audio queue, mock Switch API, libcurl
+        run: bash standalone/tests/check.sh
+      - name: Generate standalone Liquid UI resources
+        run: python3 standalone/design/render.py standalone/build/ui
+      - name: Verify generated assets
+        run: |
+          test -s standalone/build/ui/home.rgba
+          test -s standalone/build/ui/font16.alpha
+          test -s standalone/build/ui/font22.alpha
+          test -s standalone/build/ui/font32.alpha

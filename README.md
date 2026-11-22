@@ -1,3 +1,5 @@
+> **Native Engine 0.7 (experimental):** A browser-free Switch 2 prototype is available in [standalone/](standalone/README.md). Local PCM playback and Apple catalog metadata are separate from the legacy Chromium-based application below. Full protected Apple Music playback remains unsupported and hardware validation is pending.
+
 # Turnwave NX2
 
 ## v0.5.0 experimental — native UI + Chromium MusicKit playback probe

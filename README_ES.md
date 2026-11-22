@@ -1,3 +1,5 @@
+> **Nueva arquitectura nativa 0.7:** el prototipo para Switch 2 **sin Chromium ni EXT4** está en [standalone/](standalone/README.md). Incluye reproducción de WAV PCM local y búsqueda de metadatos de Apple Music con una credencial de desarrollador. La reproducción completa protegida de Apple Music no está implementada y falta validar el NRO en la consola.
+
 # Turnwave NX2 v0.6.0 — Native + MusicKit catalog IDs + playback probe
 
 **Estado: prototipo en pruebas reales sobre Switch 2.** La interfaz nativa

@@ -37,7 +37,7 @@ static int read_utf8(const char **p){
     if(!s[0])return 0;
     if(s[0]<128){*p=(const char*)s+1;return s[0];}
     if((s[0]&0xe0)==0xc0 && s[1] && (s[1]&0xc0)==0x80){int c=((s[0]&31)<<6)|(s[1]&63);*p=(const char*)s+2;return c;}
-    if((s[0]&0xf0)==0xe0 && s[1] && s[2] && (s[1]&0xc0)==0x80){int c=((s[0]&15)<<12)|((s[1]&63)<<6)|(s[2]&63);*p=(const char*)s+3;return c;}
+    if((s[0]&0xf0)==0xe0 && s[1] && s[2] && (s[1]&0xc0)==0x80 && (s[2]&0xc0)==0x80){int c=((s[0]&15)<<12)|((s[1]&63)<<6)|(s[2]&63);*p=(const char*)s+3;return c;}
     *p=(const char*)s+1;return '?';
 }
 static void text_at(u8 *pixels,u32 stride,int x,int y,int max_x,const char *s,int pts,u8 r,u8 g,u8 b){

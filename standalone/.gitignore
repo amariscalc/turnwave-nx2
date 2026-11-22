@@ -1,0 +1,10 @@
+build/
+staged-sd/
+*.elf
+*.nro
+*.nacp
+developer-token.txt
+search.txt
+cacert.pem
+__pycache__/
+*.pyc

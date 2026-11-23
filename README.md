@@ -4,7 +4,7 @@ Turnwave is a native offline music player for Nintendo Switch 2. It plays audio 
 
 ## Screenshots
 
-Turnwave Local v01.0 running at 1280 × 720 in the desktop build.
+Turnwave Local v1.0 running at 1280 × 720 in the desktop build.
 
 ![Now playing and playback queue](local-player/docs/now-playing.png)
 

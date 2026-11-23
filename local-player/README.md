@@ -1,6 +1,6 @@
 # Turnwave Local
 
-A native music player for Nintendo Switch 2 with a glass-inspired interface. Turnwave plays audio files from the SD card.
+A native music player for Nintendo Switch 2 with a native 1280 × 720 glass-inspired interface and antialiased text. Turnwave plays audio files from the SD card.
 
 Copy `switch/Turnwave/Turnwave.nro` to the SD card and open it from hbmenu. Put your audio in `/music`. Settings, history and saved playback position are stored in `/switch/Turnwave`.
 

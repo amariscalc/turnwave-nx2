@@ -99,11 +99,8 @@ void Platform::present(const uint32_t* pixels) {
     u32 stride=0;
     auto* base=static_cast<uint8_t*>(framebufferBegin(&p->fb,&stride));
     if(!base) throw std::runtime_error("Display buffer unavailable");
-    for(int y=0;y<height;y++) {
-        auto* line=reinterpret_cast<uint32_t*>(base+2*y*stride);
-        for(int x=0;x<width;x++) line[2*x]=line[2*x+1]=pixels[y*width+x];
-        std::memcpy(base+(2*y+1)*stride,line,width*8);
-    }
+    for(int y=0;y<renderHeight;y++)
+        std::memcpy(base+y*stride,pixels+y*renderWidth,renderWidth*sizeof(uint32_t));
     framebufferEnd(&p->fb);
 }
 #else
@@ -116,7 +113,7 @@ void Platform::open() {
     p->window=SDL_CreateWindow("Turnwave",SDL_WINDOWPOS_CENTERED,SDL_WINDOWPOS_CENTERED,width*2,height*2,0);
     sdl(p->window);
     p->renderer=SDL_CreateRenderer(p->window,-1,SDL_RENDERER_SOFTWARE); sdl(p->renderer);
-    p->texture=SDL_CreateTexture(p->renderer,SDL_PIXELFORMAT_ARGB8888,SDL_TEXTUREACCESS_STREAMING,width,height);
+    p->texture=SDL_CreateTexture(p->renderer,SDL_PIXELFORMAT_ARGB8888,SDL_TEXTUREACCESS_STREAMING,renderWidth,renderHeight);
     sdl(p->texture);
     SDL_AudioSpec spec{}; spec.freq=48000; spec.format=AUDIO_S16SYS; spec.channels=2; spec.samples=1024;
     p->device=SDL_OpenAudioDevice(nullptr,0,&spec,nullptr,0); sdl(p->device);
@@ -131,7 +128,7 @@ int Platform::queued(){return SDL_GetQueuedAudioSize(p->device)/4;}
 bool Platform::canQueue(){return queued()<(bufferCount-1)*blockFrames;}
 void Platform::submit(const int16_t* pcm,int frames){sdl(SDL_QueueAudio(p->device,pcm,frames*4)==0);}
 void Platform::present(const uint32_t* pixels) {
-    sdl(SDL_UpdateTexture(p->texture,nullptr,pixels,width*4)==0);
+    sdl(SDL_UpdateTexture(p->texture,nullptr,pixels,renderWidth*4)==0);
     SDL_RenderCopy(p->renderer,p->texture,nullptr,nullptr); SDL_RenderPresent(p->renderer); SDL_Delay(16);
 }
 std::vector<Input> Platform::poll() {

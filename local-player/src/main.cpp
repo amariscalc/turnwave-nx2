@@ -12,7 +12,7 @@ static void capture(const Skin& skin,const std::string& path) {
     if(!out) throw std::runtime_error("Cannot write screenshot");
     out<<"P6\n1280 720\n255\n";
     for(int y=0;y<720;y++) for(int x=0;x<1280;x++) {
-        auto col=skin.pixels[(y/2)*width+x/2];
+        auto col=skin.pixels[y*renderWidth+x];
         const char rgb[]={char(col>>16),char(col>>8),char(col)};out.write(rgb,3);
     }
 }

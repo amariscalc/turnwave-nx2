@@ -31,7 +31,7 @@ build/Turnwave.elf: $(NX_OBJ) $(CODECS)/lib/libavcodec.a
 
 build/Turnwave.nacp: Makefile
 	@mkdir -p build
-	$(DEVKITPRO)/tools/bin/nacptool --create Turnwave "amariscalc" 0.1.0 $@
+	$(DEVKITPRO)/tools/bin/nacptool --create Turnwave "amariscalc" 0.1.1 $@
 
 build/Turnwave.nro: build/Turnwave.elf build/Turnwave.nacp assets/icon.jpg
 	$(DEVKITPRO)/tools/bin/elf2nro $< $@ --nacp=build/Turnwave.nacp --icon=assets/icon.jpg

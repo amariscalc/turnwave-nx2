@@ -4,7 +4,7 @@
 #include <string_view>
 
 namespace {
-struct Glyph {uint8_t advance; uint16_t rows[16];};
+struct Glyph {int advance,x,y,w,h; const char* coverage;};
 #include "font.inc"
 using Color=uint32_t;
 constexpr Color paper=0xd9d8ee, ink=0x141525, dark=0x22213c, lit=0xf8f7ff,
@@ -18,8 +18,11 @@ struct Canvas {
     void box(int x,int y,int w,int h,Color c) {
         int a=std::clamp(x,0,width),b=std::clamp(x+w,0,width);
         if(a>=b) return;
-        for(int j=std::max(0,y);j<std::min(height,y+h);j++)
-            std::fill(px+j*width+a,px+j*width+b,c|0xff000000);
+        for(int j=std::max(0,y*2);j<std::min(renderHeight,(y+h)*2);j++)
+            std::fill(px+j*renderWidth+a*2,px+j*renderWidth+b*2,c|0xff000000);
+    }
+    void pixel(int x,int y,Color color) {
+        px[y*renderWidth+x]=color|0xff000000;
     }
     void grad(int x,int y,int w,int h,Color a,Color b) {
         for(int i=0;i<h;i++) box(x,y+i,w,1,mix(a,b,i,std::max(1,h-1)));
@@ -28,10 +31,16 @@ struct Canvas {
         box(x,y,w,1,hi);box(x,y,1,h,hi);box(x,y+h-1,w,1,lo);box(x+w-1,y,1,h,lo);
     }
     void round(int x,int y,int w,int h,int r,Color top,Color bottom) {
-        for(int j=0;j<h;j++) {
-            int dy=std::max({0,r-j,j-(h-1-r)});
-            int pad=dy?r-int(std::sqrt(r*r-dy*dy)):0;
-            box(x+pad,y+j,w-pad*2,1,mix(top,bottom,j,std::max(1,h-1)));
+        const int radius=r*2;
+        for(int row=0;row<h*2;row++) {
+            const int py=y*2+row;
+            if(py<0 || py>=renderHeight) continue;
+            int dy=std::max({0,radius-row,row-(h*2-1-radius)});
+            int pad=dy?radius-int(std::sqrt(radius*radius-dy*dy)):0;
+            int left=std::clamp(x*2+pad,0,renderWidth);
+            int right=std::clamp((x+w)*2-pad,left,renderWidth);
+            auto color=mix(top,bottom,row,std::max(1,h*2-1));
+            std::fill(px+py*renderWidth+left,px+py*renderWidth+right,color|0xff000000);
         }
     }
     void inset(int x,int y,int w,int h,Color fill=well) {round(x,y,w,h,5,fill,fill);}
@@ -47,25 +56,25 @@ struct Canvas {
         return code>=32 && code<=255?code:'?';
     }
     int measure(std::string_view s,const Glyph* font) {
-        int w=0; for(size_t i=0;i<s.size();) w+=font[glyph(s,i)-32].advance;
-        return w;
+        int w=0;
+        for(size_t i=0;i<s.size();) w+=font[glyph(s,i)-32].advance;
+        return (w+1)/2;
     }
     void text(int x,int y,std::string_view s,Color color,const Glyph* font=small,int limit=640) {
-        int start=x;
+        const int end=(x+limit)*2;
+        int pen=x*2;
         for(size_t i=0;i<s.size();) {
-            const auto& g=font[glyph(s,i)-32]; if(x-start+g.advance>limit) break;
-            for(int j=0;j<16;j++) if(g.rows[j]) for(int k=0;k<16;k++) if(g.rows[j] & (1u<<k)) box(x+k,y+j,1,1,color);
-            x+=g.advance;
-        }
-    }
-    void marquee(int x,int y,std::string_view value,int room,double elapsed) {
-        int length=measure(value,bold);
-        if(length<=room) {text(x,y,value,green,bold,room);return;}
-        int offset=std::clamp(int(elapsed*22)%(length+52),0,length-room);
-        for(size_t i=0;i<value.size();) {
-            size_t begin=i;const auto& g=bold[glyph(value,i)-32];
-            if(offset<=0 && -offset+g.advance<=room) text(x-offset,y,value.substr(begin,i-begin),green,bold,g.advance);
-            offset-=g.advance;
+            const auto& g=font[glyph(s,i)-32];
+            if(pen+g.advance>end) break;
+            for(int row=0;row<g.h;row++) for(int col=0;col<g.w;col++) {
+                int dx=pen+g.x+col,dy=y*2+g.y+row;
+                if(dx<0 || dx>=renderWidth || dy<0 || dy>=renderHeight) continue;
+                const int index=row*g.w+col;
+                const unsigned coverage=static_cast<unsigned char>(g.coverage[index/2]);
+                const int alpha=(coverage>>((index%2)*4))&15;
+                if(alpha) pixel(dx,dy,mix(px[dy*renderWidth+dx],color,alpha,15));
+            }
+            pen+=g.advance;
         }
     }
     void center(int x,int y,int w,std::string_view s,Color c,const Glyph* f=small) {
@@ -115,10 +124,10 @@ void mainDeck(Canvas& c,const Player& p) {
     const int imageX=33,imageY=98,side=128;
     const auto* audio=p.audio.get();
     c.round(imageX,imageY,side,side,13,0x8170ce,0x393768);
-    if(audio && audio->cover.size()==side*side) {
-        for(int y=0;y<side;y++) for(int x=0;x<side;x++) {
-            int dx=std::max({0,12-x,x-(side-13)}),dy=std::max({0,12-y,y-(side-13)});
-            if(dx*dx+dy*dy<=144) c.px[(imageY+y)*width+imageX+x]=audio->cover[y*side+x];
+    if(audio && audio->cover.size()==Decoder::coverSide*Decoder::coverSide) {
+        for(int y=0;y<Decoder::coverSide;y++) for(int x=0;x<Decoder::coverSide;x++) {
+            int dx=std::max({0,24-x,x-(Decoder::coverSide-25)}),dy=std::max({0,24-y,y-(Decoder::coverSide-25)});
+            if(dx*dx+dy*dy<=576) c.pixel(imageX*2+x,imageY*2+y,audio->cover[y*Decoder::coverSide+x]);
         }
     } else {
         const int bars[]={28,49,66,45,25};
@@ -298,7 +307,7 @@ void fullScreen(Canvas& c,const Player& p) {
         c.inset(24,45,132,132);
         if(a.cover.empty()) c.center(26,103,128,"NO JPEG COVER",muted);
         else for(int y=0;y<Decoder::coverSide;y++) for(int x=0;x<Decoder::coverSide;x++)
-            c.px[(47+y)*width+26+x]=a.cover[y*Decoder::coverSide+x];
+            c.pixel(52+x,94+y,a.cover[y*Decoder::coverSide+x]);
         c.text(178,51,a.title.empty()?p.queue[p.current].name:a.title,green,bold,424);
         c.text(178,77,a.artist.empty()?"Unknown artist":a.artist,lit,body,424);
         c.text(178,101,a.album.empty()?"Unknown album":a.album,paper,body,424);
@@ -327,13 +336,16 @@ void fullScreen(Canvas& c,const Player& p) {
 }
 void Skin::draw(const Player& p) {
     Canvas c{pixels.data()};
-    for(int y=0;y<height;y++) {
-        for(int x=0;x<width;x++) {
-            int glow=std::max(0,150-(std::abs(x-115)+std::abs(y-30))/3);
-            int blue=std::max(0,110-(std::abs(x-590)+std::abs(y-45))/3);
-            c.px[y*width+x]=0xff000000|mix(mix(0x131526,0x4d356d,glow,150),0x283d70,blue,150);
+    static const auto background=[] {
+        std::vector<uint32_t> result(renderWidth*renderHeight);
+        for(int y=0;y<renderHeight;y++) for(int x=0;x<renderWidth;x++) {
+            int glow=std::max(0,150-(std::abs(x-230)+std::abs(y-60))/6);
+            int blue=std::max(0,110-(std::abs(x-1180)+std::abs(y-90))/6);
+            result[y*renderWidth+x]=0xff000000|mix(mix(0x131526,0x4d356d,glow,150),0x283d70,blue,150);
         }
-    }
+        return result;
+    }();
+    std::copy(background.begin(),background.end(),pixels.begin());
     if(p.keyboardMode() || p.overlay!=Player::Overlay::None) {
         fullScreen(c,p);
         c.text(13,339,p.overlay==Player::Overlay::Presets?"D-PAD  Select   A  Apply   B  Back":"B  Back",paper);

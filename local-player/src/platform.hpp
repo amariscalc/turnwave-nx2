@@ -4,6 +4,7 @@
 #include <vector>
 
 constexpr int width=640, height=360, blockFrames=2048, bufferCount=4;
+constexpr int renderScale=2, renderWidth=width*renderScale, renderHeight=height*renderScale;
 enum class Key { Up, Down, Left, Right, Accept, Back, Browse, Eq, Prev, Next, VolDown, VolUp, Shuffle, Repeat, Mix, Quit, Tap, Drag };
 struct Input {Key key; int x=0,y=0;};
 class Platform {

@@ -2,6 +2,14 @@
 
 Turnwave is a native offline music player for Nintendo Switch 2. It plays audio files stored on the SD card and builds a searchable library on the console.
 
+## Screenshots
+
+Turnwave Local v0.1.1 running at 1280 × 720 in the desktop build.
+
+![Now playing and playback queue](local-player/docs/now-playing.png)
+
+![Browsing music files](local-player/docs/library.png)
+
 ## Install
 
 Copy `switch/Turnwave/Turnwave.nro` to the SD card, put your music in `/music`, and launch **Turnwave** from hbmenu.

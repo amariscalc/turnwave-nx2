@@ -12,6 +12,8 @@ Turnwave Local v0.1.1 running at 1280 × 720 in the desktop build.
 
 ## Install
 
+[Download the latest release](https://github.com/amariscalc/turnwave-nx2/releases/latest).
+
 Copy `switch/Turnwave/Turnwave.nro` to the SD card, put your music in `/music`, and launch **Turnwave** from hbmenu.
 
 Turnwave includes library search by artist, album and genre, favorites, an editable queue, M3U8 playlists, JPEG cover art, LRC lyrics, CUE chapters, ReplayGain and adjustable playback speed. Use the controller or touchscreen to navigate the interface.
